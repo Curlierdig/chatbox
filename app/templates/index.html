@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" class="bg-neutral-900 text-gray-100">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chatbot</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body class="flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-xl p-6 bg-neutral-800 rounded-2xl shadow-lg">
+      <h1 class="text-2xl font-bold mb-4 text-center text-gray-100">🤖 EasyBot</h1>
+
+      <!-- Historial del chat -->
+      <div id="chatHistory" class="h-[400px] overflow-y-auto bg-neutral-700 rounded-xl p-4 space-y-4">
+        {% if pregunta and respuesta %}
+        <div class="flex flex-col gap-2">
+          <div class="self-end bg-blue-600 px-4 py-2 rounded-xl max-w-[75%] text-sm">{{ pregunta }}</div>
+          <div class="self-start bg-gray-600 px-4 py-2 rounded-xl max-w-[75%] text-sm">{{ respuesta }}</div>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 text-center">Haz una pregunta sobre programación, matemáticas u otra área.</p>
+        {% endif %}
+      </div>
+
+      <!-- Animación de escribiendo HACER QUE FUNCIONE Y AGREGAR EL HISTORIAL -->
+      <div id="typingIndicator" class="hidden text-gray-300 text-sm flex gap-1 items-center">
+        <span class="animate-pulse">.</span>
+        <span class="animate-pulse delay-200">.</span>
+        <span class="animate-pulse delay-400">.</span>
+        <span>escribiendo...</span>
+      </div>
+
+      <!-- Formulario -->
+      <form method="POST" class="flex gap-2 pt-4">
+        <input name="pregunta" type="text" required placeholder="Escribe tu pregunta..." class="flex-grow px-4 py-2 rounded-xl bg-neutral-600 text-white placeholder-gray-400 focus:outline-none" />
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-xl text-white font-semibold">Enviar</button>
+      </form>
+    </div>
+    <script>
+      const form = document.getElementById("chatForm");
+      const input = document.getElementById("userInput");
+      const chat = document.getElementById("chatHistory");
+      const typing = document.getElementById("typingIndicator");
+
+      function addMessage(content, isUser = true) {
+        const msg = document.createElement("div");
+        msg.className = `px-4 py-2 rounded-xl max-w-[75%] text-sm ${isUser ? "bg-blue-600 self-end ml-auto" : "bg-gray-600 self-start mr-auto"}`;
+        msg.textContent = content;
+
+        // Remover mensaje de bienvenida
+        const welcome = chat.querySelector(".text-center");
+        if (welcome) welcome.remove();
+
+        chat.appendChild(msg);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      async function getResponse(question) {
+        try {
+          const res = await fetch("/responder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pregunta: question }),
+          });
+          const data = await res.json();
+          return data.respuesta || "Error en la respuesta";
+        } catch {
+          return "Error de conexión";
+        }
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, true);
+        input.value = "";
+
+        typing.classList.remove("hidden");
+        const response = await getResponse(text);
+        typing.classList.add("hidden");
+
+        addMessage(response, false);
+      });
+    </script>
+  </body>
+</html>
